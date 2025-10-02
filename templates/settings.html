@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Planet Fitness Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6b5b95 0%, #8b4d8b 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 10px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .settings-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .settings-card h2 {
+            color: #6b5b95;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #6b5b95;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #6b5b95;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a4a85;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .credentials-status {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-configured {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-not-configured {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .sync-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .sync-history-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 500;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 13px;
+        }
+
+        .sync-history-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+
+        .sync-history-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .sync-status-success {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .sync-status-failed {
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .sync-status-in_progress {
+            color: #ffc107;
+            font-weight: 500;
+        }
+
+        .sync-trigger-manual {
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .sync-trigger-scheduler {
+            background: #f0f0f0;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-button">← Back to Dashboard</a>
+            <h1>⚙️ Settings</h1>
+            <p>Configure your Planet Fitness credentials</p>
+        </div>
+
+        <div class="alert alert-success" id="success-alert"></div>
+        <div class="alert alert-error" id="error-alert"></div>
+
+        <div class="settings-card">
+            <h2>Planet Fitness Credentials</h2>
+
+            <div class="credentials-status">
+                <strong>Status:</strong>
+                <span class="status-badge" id="status-badge">Loading...</span>
+                <div id="current-email" style="margin-top: 8px; display: none;">
+                    <strong>Current Email:</strong> <span id="email-display"></span>
+                </div>
+            </div>
+
+            <form id="credentials-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="your-email@example.com">
+                    <div class="help-text">Your Planet Fitness account email</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    <div class="help-text">Your Planet Fitness account password (stored securely in database)</div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary" id="save-btn">
+                        💾 Save Credentials
+                    </button>
+                    <button type="button" class="btn btn-danger" id="delete-btn" style="display: none;">
+                        🗑️ Delete Credentials
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="settings-card">
+            <h2>Scheduler Settings</h2>
+            <div class="credentials-status">
+                <strong>Data Fetch Interval:</strong> <span id="fetch-interval">Loading...</span>
+                <div class="help-text" style="margin-top: 8px;">
+                    The scheduler automatically fetches new gym capacity data at this interval
+                </div>
+            </div>
+            <div class="credentials-status" style="margin-top: 15px;">
+                <strong>Scheduler Status:</strong> <span class="status-badge status-configured">Running ✓</span>
+                <div class="help-text" style="margin-top: 8px;">
+                    The background scheduler is actively running and will fetch data automatically
+                </div>
+            </div>
+            <div class="credentials-status" style="margin-top: 15px;" id="last-sync-container">
+                <strong>Last Successful Sync:</strong> <span id="last-sync-time">Never</span>
+                <div class="help-text" style="margin-top: 8px;" id="last-sync-details"></div>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h2>Sync History</h2>
+            <div class="help-text" style="margin-bottom: 15px;">
+                Recent data synchronization attempts (showing last 10)
+            </div>
+            <div id="sync-history-container">
+                <div style="text-align: center; padding: 20px; color: #666;">
+                    Loading sync history...
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h2>About Credentials</h2>
+            <p style="line-height: 1.6; color: #666;">
+                Your credentials are stored securely in the local database and are used to authenticate
+                with Planet Fitness to fetch gym capacity data. The credentials are never transmitted
+                to any third-party servers and remain on your system only.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let hasCredentials = false;
+
+        function showAlert(type, message) {
+            const alertId = type === 'success' ? 'success-alert' : 'error-alert';
+            const alert = document.getElementById(alertId);
+            alert.textContent = message;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function loadCredentialStatus() {
+            fetch('/api/credentials')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        hasCredentials = data.has_credentials;
+                        const statusBadge = document.getElementById('status-badge');
+                        const deleteBtn = document.getElementById('delete-btn');
+                        const currentEmailDiv = document.getElementById('current-email');
+                        const emailDisplay = document.getElementById('email-display');
+                        const emailInput = document.getElementById('email');
+
+                        if (hasCredentials) {
+                            statusBadge.textContent = 'Configured ✓';
+                            statusBadge.className = 'status-badge status-configured';
+                            deleteBtn.style.display = 'inline-block';
+                            currentEmailDiv.style.display = 'block';
+                            emailDisplay.textContent = data.email;
+                            emailInput.value = data.email;
+                        } else {
+                            statusBadge.textContent = 'Not Configured';
+                            statusBadge.className = 'status-badge status-not-configured';
+                            deleteBtn.style.display = 'none';
+                            currentEmailDiv.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading credential status:', error);
+                    showAlert('error', 'Failed to load credential status');
+                });
+        }
+
+        document.getElementById('credentials-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const saveBtn = document.getElementById('save-btn');
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = '⏳ Saving...';
+
+            fetch('/api/credentials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save Credentials';
+
+                if (data.status === 'success') {
+                    showAlert('success', 'Credentials saved successfully!');
+                    document.getElementById('password').value = '';
+                    loadCredentialStatus();
+                } else {
+                    showAlert('error', data.message || 'Failed to save credentials');
+                }
+            })
+            .catch(error => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save Credentials';
+                showAlert('error', 'Error saving credentials: ' + error.message);
+            });
+        });
+
+        document.getElementById('delete-btn').addEventListener('click', function() {
+            if (!confirm('Are you sure you want to delete your saved credentials?')) {
+                return;
+            }
+
+            const deleteBtn = document.getElementById('delete-btn');
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = '⏳ Deleting...';
+
+            fetch('/api/credentials', {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '🗑️ Delete Credentials';
+
+                if (data.status === 'success') {
+                    showAlert('success', 'Credentials deleted successfully');
+                    document.getElementById('email').value = '';
+                    document.getElementById('password').value = '';
+                    loadCredentialStatus();
+                } else {
+                    showAlert('error', data.message || 'Failed to delete credentials');
+                }
+            })
+            .catch(error => {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = '🗑️ Delete Credentials';
+                showAlert('error', 'Error deleting credentials: ' + error.message);
+            });
+        });
+
+        function formatDateTime(isoString) {
+            if (!isoString) return 'N/A';
+            const date = new Date(isoString);
+            return date.toLocaleString('en-AU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return 'N/A';
+            if (seconds < 1) return `${(seconds * 1000).toFixed(0)}ms`;
+            if (seconds < 60) return `${seconds.toFixed(1)}s`;
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}m ${secs}s`;
+        }
+
+        function loadSchedulerInfo() {
+            fetch('/api/scheduler-info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('fetch-interval').textContent = data.interval_formatted;
+
+                        if (data.last_successful_sync) {
+                            const lastSync = data.last_successful_sync;
+                            document.getElementById('last-sync-time').textContent = formatDateTime(lastSync.completed_at);
+                            document.getElementById('last-sync-details').textContent =
+                                `Fetched ${lastSync.gyms_fetched} gyms in ${formatDuration(lastSync.duration_seconds)}`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading scheduler info:', error);
+                    document.getElementById('fetch-interval').textContent = 'Unknown';
+                });
+        }
+
+        function loadSyncHistory() {
+            fetch('/api/sync-history?limit=10')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.history.length > 0) {
+                        let html = `
+                            <table class="sync-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                        <th>Gyms</th>
+                                        <th>Duration</th>
+                                        <th>Triggered By</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        data.history.forEach(sync => {
+                            const statusClass = `sync-status-${sync.status}`;
+                            const triggerClass = `sync-trigger-${sync.triggered_by}`;
+                            const statusText = sync.status === 'success' ? '✓ Success' :
+                                             sync.status === 'failed' ? '✗ Failed' : '⏳ In Progress';
+
+                            html += `
+                                <tr>
+                                    <td>${formatDateTime(sync.started_at)}</td>
+                                    <td><span class="${statusClass}">${statusText}</span></td>
+                                    <td>${sync.gyms_fetched || 0}</td>
+                                    <td>${formatDuration(sync.duration_seconds)}</td>
+                                    <td><span class="${triggerClass}">${sync.triggered_by}</span></td>
+                                </tr>
+                            `;
+
+                            if (sync.error_message) {
+                                html += `
+                                    <tr>
+                                        <td colspan="5" style="padding: 5px 10px; color: #dc3545; font-size: 11px;">
+                                            Error: ${sync.error_message}
+                                        </td>
+                                    </tr>
+                                `;
+                            }
+                        });
+
+                        html += `
+                                </tbody>
+                            </table>
+                        `;
+
+                        document.getElementById('sync-history-container').innerHTML = html;
+                    } else {
+                        document.getElementById('sync-history-container').innerHTML =
+                            '<div style="text-align: center; padding: 20px; color: #666;">No sync history available yet</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sync history:', error);
+                    document.getElementById('sync-history-container').innerHTML =
+                        '<div style="text-align: center; padding: 20px; color: #dc3545;">Error loading sync history</div>';
+                });
+        }
+
+        // Load status on page load
+        loadCredentialStatus();
+        loadSchedulerInfo();
+        loadSyncHistory();
+
+        // Refresh sync history every 30 seconds
+        setInterval(() => {
+            loadSchedulerInfo();
+            loadSyncHistory();
+        }, 30000);
+    </script>
+</body>
+</html>

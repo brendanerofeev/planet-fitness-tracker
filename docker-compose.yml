@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  planet-fitness-tracker:
+    build: .
+    container_name: planet-fitness-tracker
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - PF_EMAIL=${PF_EMAIL}
+      - PF_PASSWORD=${PF_PASSWORD}
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      - LOG_INTERVAL=15
+      - TZ=Australia/Brisbane
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/gyms"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

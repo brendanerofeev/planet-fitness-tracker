@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planet Fitness Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6b5b95 0%, #8b4d8b 100%);
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #6b5b95;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        
+        .controls button {
+            background: #6b5b95;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .controls button:hover {
+            background: #5a4a85;
+        }
+        
+        .gym-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .gym-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .gym-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .gym-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .gym-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .gym-address {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .gym-capacity {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .capacity-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .capacity-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .capacity-low { color: #28a745; }
+        .capacity-medium { color: #ffc107; }
+        .capacity-high { color: #dc3545; }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .gym-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏋️ Planet Fitness Tracker</h1>
+            <p>Real-time gym capacity monitoring for optimal workout timing</p>
+        </div>
+        
+        <div class="stats-row" id="stats-row">
+            <div class="stat-card">
+                <div class="stat-number" id="total-gyms">-</div>
+                <div class="stat-label">Total Gyms</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-capacity">-</div>
+                <div class="stat-label">Average Capacity</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="max-capacity">-</div>
+                <div class="stat-label">Peak Capacity</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-records">-</div>
+                <div class="stat-label">Data Points</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="toggle-view" onclick="toggleView()" style="background: #8b4d8b; margin-right: 10px;">
+                📍 Show All Gyms
+            </button>
+            <input type="text" id="search-input" placeholder="Search gyms..." style="display: none;" />
+            <select id="sort-select" style="display: none;">
+                <option value="capacity-desc">Sort by Capacity (High to Low)</option>
+                <option value="capacity-asc">Sort by Capacity (Low to High)</option>
+                <option value="name-asc">Sort by Name (A-Z)</option>
+                <option value="name-desc">Sort by Name (Z-A)</option>
+            </select>
+            <button onclick="window.location.href='/settings'" style="background: #28a745;">⚙️ Settings</button>
+            <button onclick="refreshData()">🔄 Refresh</button>
+            <button id="force-fetch-btn" onclick="forceFetch()" style="background: #dc3545; margin-left: 10px;">
+                ⚡ Force Fetch New Data
+            </button>
+        </div>
+        
+        <div class="loading" id="loading">Loading gym capacity data...</div>
+        <div class="error" id="error" style="display: none;"></div>
+        
+        <div class="timestamp" id="timestamp"></div>
+        
+        <div class="gym-grid" id="gym-grid"></div>
+    </div>
+    
+    <script>
+        let allGyms = [];
+        let showAllGyms = false;
+        const myGyms = ['BETHANIA', 'Springwood'];
+        
+        function getCapacityClass(count) {
+            if (count === 0) return 'capacity-low';
+            if (count < 150) return 'capacity-low';
+            if (count < 200) return 'capacity-medium';
+            return 'capacity-high';
+        }
+        
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-AU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        
+        function renderGyms(gyms) {
+            const gymGrid = document.getElementById('gym-grid');
+            gymGrid.innerHTML = '';
+            
+            gyms.forEach(gym => {
+                const gymCard = document.createElement('div');
+                gymCard.className = 'gym-card';
+                gymCard.onclick = () => window.open(`/gym/${encodeURIComponent(gym.club_name)}?enhanced=true`, '_blank');
+                
+                gymCard.innerHTML = `
+                    <div class="gym-header">
+                        <div class="gym-name">${gym.club_name}</div>
+                        <div class="gym-address">${gym.club_address}</div>
+                    </div>
+                    <div class="gym-capacity">
+                        <div class="capacity-number ${getCapacityClass(gym.users_count)}">${gym.users_count}</div>
+                        <div class="capacity-label">People Currently in Gym</div>
+                    </div>
+                `;
+                
+                gymGrid.appendChild(gymCard);
+            });
+        }
+        
+        function toggleView() {
+            showAllGyms = !showAllGyms;
+            const button = document.getElementById('toggle-view');
+            const searchInput = document.getElementById('search-input');
+            const sortSelect = document.getElementById('sort-select');
+            
+            if (showAllGyms) {
+                button.textContent = '📍 Show My Gyms Only';
+                searchInput.style.display = 'inline-block';
+                sortSelect.style.display = 'inline-block';
+            } else {
+                button.textContent = '📍 Show All Gyms';
+                searchInput.style.display = 'none';
+                sortSelect.style.display = 'none';
+                searchInput.value = ''; // Clear search when switching back
+            }
+            
+            filterAndSortGyms();
+            loadStats(); // Reload stats when toggling view
+        }
+        
+        function filterAndSortGyms() {
+            let filteredGyms = allGyms;
+            
+            // Apply my gyms filter first if not showing all
+            if (!showAllGyms) {
+                filteredGyms = allGyms.filter(gym => 
+                    myGyms.some(myGym => gym.club_name === myGym)
+                );
+                // Sort my gyms by name for consistent order
+                filteredGyms.sort((a, b) => a.club_name.localeCompare(b.club_name));
+            } else {
+                // Only apply search and sort when showing all gyms
+                const searchTerm = document.getElementById('search-input').value.toLowerCase();
+                const sortOption = document.getElementById('sort-select').value;
+                
+                filteredGyms = allGyms.filter(gym => 
+                    gym.club_name.toLowerCase().includes(searchTerm) ||
+                    gym.club_address.toLowerCase().includes(searchTerm)
+                );
+                
+                // Sort gyms
+                switch(sortOption) {
+                    case 'capacity-desc':
+                        filteredGyms.sort((a, b) => b.users_count - a.users_count);
+                        break;
+                    case 'capacity-asc':
+                        filteredGyms.sort((a, b) => a.users_count - b.users_count);
+                        break;
+                    case 'name-asc':
+                        filteredGyms.sort((a, b) => a.club_name.localeCompare(b.club_name));
+                        break;
+                    case 'name-desc':
+                        filteredGyms.sort((a, b) => b.club_name.localeCompare(a.club_name));
+                        break;
+                }
+            }
+            
+            renderGyms(filteredGyms);
+        }
+        
+        function loadStats() {
+            // Load stats based on current view
+            const myGymsParam = showAllGyms ? '' : '&my_gyms=true';
+            
+            fetch(`/api/stats?days=7${myGymsParam}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const stats = data.stats;
+                        document.getElementById('total-gyms').textContent = stats.total_gyms;
+                        document.getElementById('avg-capacity').textContent = stats.avg_capacity;
+                        document.getElementById('max-capacity').textContent = stats.max_capacity;
+                        document.getElementById('total-records').textContent = stats.total_records;
+                    }
+                })
+                .catch(error => console.error('Error loading stats:', error));
+        }
+        
+        function loadCapacityData() {
+            fetch('/api/current-capacity')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'none';
+                    
+                    if (data.status === 'success') {
+                        allGyms = data.data;
+                        filterAndSortGyms();
+                        
+                        document.getElementById('timestamp').textContent = 
+                            `Last updated: ${formatTimestamp(data.timestamp)}`;
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('error').textContent = `Error loading data: ${error.message}`;
+                });
+        }
+        
+        function refreshData() {
+            document.getElementById('loading').style.display = 'block';
+            loadCapacityData();
+            loadStats();
+        }
+
+        function forceFetch() {
+            const button = document.getElementById('force-fetch-btn');
+            const originalText = button.textContent;
+
+            // Disable button and show loading state
+            button.disabled = true;
+            button.textContent = '⏳ Fetching data...';
+            button.style.background = '#6c757d';
+
+            fetch('/api/force-fetch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Poll for completion
+                    checkFetchStatus(button, originalText);
+                } else {
+                    alert(`Error: ${data.message}`);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.style.background = '#dc3545';
+                }
+            })
+            .catch(error => {
+                alert(`Error triggering fetch: ${error.message}`);
+                button.disabled = false;
+                button.textContent = originalText;
+                button.style.background = '#dc3545';
+            });
+        }
+
+        function checkFetchStatus(button, originalText) {
+            fetch('/api/fetch-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fetch_in_progress) {
+                        // Still fetching, check again in 1 second
+                        setTimeout(() => checkFetchStatus(button, originalText), 1000);
+                    } else {
+                        // Fetch completed
+                        button.disabled = false;
+                        button.textContent = originalText;
+                        button.style.background = '#dc3545';
+
+                        if (data.last_result) {
+                            if (data.last_result.success) {
+                                alert('✅ Data fetched successfully! Refreshing dashboard...');
+                                refreshData();
+                            } else {
+                                alert(`❌ Fetch failed: ${data.last_result.message}`);
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking fetch status:', error);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    button.style.background = '#dc3545';
+                });
+        }
+
+        // Event listeners
+        document.getElementById('search-input').addEventListener('input', filterAndSortGyms);
+        document.getElementById('sort-select').addEventListener('change', filterAndSortGyms);
+
+        // Initial load
+        loadCapacityData();
+        loadStats();
+
+        // Auto refresh every 5 minutes
+        setInterval(refreshData, 300000);
+    </script>
+</body>
+</html>
