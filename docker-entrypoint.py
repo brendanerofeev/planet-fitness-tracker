@@ -10,11 +10,6 @@ import subprocess
 import time
 from threading import Thread
 
-# Check for required environment variables
-if not os.getenv('PF_EMAIL') or not os.getenv('PF_PASSWORD'):
-    print("ERROR: PF_EMAIL and PF_PASSWORD environment variables must be set!")
-    sys.exit(1)
-
 print("Starting Gym Capacity Logger Container...")
 
 # Create necessary directories
