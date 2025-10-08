@@ -25,19 +25,19 @@ git clone https://github.com/yourusername/planet-fitness-tracker.git
 cd planet-fitness-tracker
 ```
 
-2. **Configure environment variables**
-```bash
-cp .env.example .env
-# Edit .env with your Planet Fitness credentials
-```
-
-3. **Run with Docker Compose**
+2. **Run with Docker Compose**
 ```bash
 docker-compose up -d
 ```
 
-4. **Access the dashboard**
+3. **Access the dashboard**
 Open http://localhost:5000 in your browser
+
+4. **Configure credentials**
+- Navigate to the **Settings** page
+- Enter your Planet Fitness email and password
+- Click "Save Credentials"
+- The scheduler will automatically start collecting data
 
 ## Manual Installation
 
@@ -52,38 +52,59 @@ Open http://localhost:5000 in your browser
 pip install -r requirements.txt
 ```
 
-2. **Configure credentials**
-Set environment variables:
-```bash
-export PF_EMAIL="your-email@example.com"
-export PF_PASSWORD="your-password"
-```
-
-Or create a `.env` file from the template:
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-3. **Run the scheduler**
+2. **Run the scheduler**
 ```bash
 python scheduler.py
 ```
 
-4. **Start the web dashboard**
+3. **Start the web dashboard**
 In a separate terminal:
 ```bash
 python web_app.py
 ```
 
+4. **Configure credentials**
+- Open http://localhost:5000 in your browser
+- Navigate to the **Settings** page
+- Enter your Planet Fitness email and password
+- Click "Save Credentials"
+
 ## Configuration
+
+### Credentials Setup
+
+Planet Fitness credentials can be configured in two ways:
+
+#### Option 1: Web Interface (Recommended)
+1. Start the application
+2. Navigate to **Settings** page from the dashboard
+3. Enter your Planet Fitness email and password
+4. Click "Save Credentials"
+
+Credentials are stored securely in the SQLite database (`credentials` table) and persist between restarts.
+
+#### Option 2: Environment Variables (Fallback)
+If no credentials are found in the database, the application will use environment variables:
+
+```bash
+export PF_EMAIL="your-email@example.com"
+export PF_PASSWORD="your-password"
+```
+
+Or create a `.env` file:
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+```
+
+**Note:** Database credentials take priority over environment variables.
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PF_EMAIL` | Planet Fitness login email | Required |
-| `PF_PASSWORD` | Planet Fitness password | Required |
+| `PF_EMAIL` | Planet Fitness login email (fallback) | Optional |
+| `PF_PASSWORD` | Planet Fitness password (fallback) | Optional |
 | `LOG_INTERVAL` | Data collection interval (minutes) | 15 |
 | `FLASK_HOST` | Web server host | 0.0.0.0 |
 | `FLASK_PORT` | Web server port | 5000 |
@@ -118,10 +139,22 @@ gym-capacity-logger/
 
 The web application provides several REST API endpoints:
 
+### Data Endpoints
 - `GET /api/current-capacity` - Current capacity for all gyms
 - `GET /api/gym-history/<gym_name>` - Historical data for specific gym
 - `GET /api/stats` - Database statistics
 - `GET /api/gyms` - List of all tracked gyms
+
+### Credentials Management
+- `GET /api/credentials` - Check if credentials are configured (returns email, not password)
+- `POST /api/credentials` - Save/update credentials (JSON: `{email, password}`)
+- `DELETE /api/credentials` - Delete stored credentials
+
+### Data Collection
+- `POST /api/force-fetch` - Manually trigger data collection
+- `GET /api/fetch-status` - Check status of ongoing/last fetch operation
+- `GET /api/scheduler-info` - Get scheduler configuration and status
+- `GET /api/sync-history` - Get recent synchronization history
 
 ## Data Storage
 
@@ -144,7 +177,7 @@ python -m pytest tests/
 
 **gyms table**
 - `id`: Primary key
-- `club_name`: Gym name
+- `club_name`: Gym name (unique)
 - `club_address`: Location address
 - `created_at`: Timestamp
 
@@ -155,6 +188,23 @@ python -m pytest tests/
 - `users_limit`: Maximum capacity
 - `timestamp`: Log timestamp
 - `created_at`: Record creation time
+
+**credentials table**
+- `id`: Primary key
+- `email`: Planet Fitness email
+- `password`: Planet Fitness password (stored in plaintext)
+- `created_at`: Timestamp
+- `updated_at`: Last update timestamp
+
+**sync_history table**
+- `id`: Primary key
+- `started_at`: Sync start time
+- `completed_at`: Sync completion time
+- `status`: 'success', 'failed', or 'in_progress'
+- `gyms_fetched`: Number of gyms fetched
+- `error_message`: Error details (if failed)
+- `duration_seconds`: Sync duration
+- `triggered_by`: 'manual' or 'scheduler'
 
 ## Deployment Options
 
@@ -175,9 +225,11 @@ Same as VPS deployment. Ensure Docker is installed first.
 ## Troubleshooting
 
 ### No data being collected
-- Verify Planet Fitness credentials are correct
+- Verify Planet Fitness credentials are configured in Settings page
+- Check if credentials exist: Look for "Configured ✓" status in Settings
 - Check scheduler logs: `docker-compose logs scheduler`
 - Ensure network connectivity to Planet Fitness API
+- Try manually triggering a fetch from the Settings page
 
 ### Web interface not loading
 - Check if port 5000 is available

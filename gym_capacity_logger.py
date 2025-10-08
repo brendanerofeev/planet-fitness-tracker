@@ -197,8 +197,8 @@ class PlanetFitnessLogger:
         self._save_to_csv(timestamp, gym_data)
         
         print(f"Data saved for {len(gym_data)} gyms at {timestamp}")
-        print(f"✓ Stored in SQLite database")
-        print(f"✓ Backed up to JSON and CSV files")
+        print(f"[OK] Stored in SQLite database")
+        print(f"[OK] Backed up to JSON and CSV files")
     
     def _save_to_json(self, data_entry: Dict) -> None:
         """Save data to JSON file"""
@@ -303,11 +303,11 @@ def main():
     logger = PlanetFitnessLogger()
     
     success = logger.run_data_collection(config.EMAIL, config.PASSWORD)
-    
+
     if success:
-        print("✅ Gym capacity logging completed successfully!")
+        print("SUCCESS: Gym capacity logging completed successfully!")
     else:
-        print("❌ Gym capacity logging failed!")
+        print("FAILED: Gym capacity logging failed!")
         exit(1)
 
 
