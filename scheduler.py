@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Scheduler for gym capacity logging.
-Runs the logger at specified intervals.
+Scheduler for gym capacity logging
+Runs the logger at specified intervals
 """
 
 import os
