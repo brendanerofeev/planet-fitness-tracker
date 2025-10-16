@@ -418,7 +418,7 @@
             <div class="chart-container">
                 <h2>🎯 Best 2-Hour Workout Windows</h2>
                 <div class="best-times" id="best-times">
-                    <h3>⭐ Top 5 Least Crowded Times This Week</h3>
+                    <h3>⭐ Top 3 Least Crowded Times (5am-10pm)</h3>
                     <div id="time-slots"></div>
                 </div>
             </div>
@@ -796,8 +796,23 @@
         function findBestWorkoutTimes() {
             if (currentData.length === 0) return;
             
+            // Filter data to only include reasonable hours (5am-10pm)
+            const REASONABLE_HOURS_START = 5;  // 5am
+            const REASONABLE_HOURS_END = 22;    // 10pm
+            
+            const reasonableData = currentData.filter(d => {
+                const hour = new Date(d.timestamp).getHours();
+                return hour >= REASONABLE_HOURS_START && hour < REASONABLE_HOURS_END;
+            });
+            
+            if (reasonableData.length === 0) {
+                const timeSlotsDiv = document.getElementById('time-slots');
+                timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">No data available for reasonable hours (5am-10pm)</p>';
+                return;
+            }
+            
             // Sort data by timestamp
-            const sortedData = [...currentData].sort((a, b) => 
+            const sortedData = [...reasonableData].sort((a, b) => 
                 new Date(a.timestamp) - new Date(b.timestamp)
             );
             
@@ -808,6 +823,14 @@
                 const windowData = sortedData.slice(i, i + 8);
                 const startTime = new Date(windowData[0].timestamp);
                 const endTime = new Date(windowData[windowData.length - 1].timestamp);
+                
+                // Double-check that window is within reasonable hours
+                const startHour = startTime.getHours();
+                const endHour = endTime.getHours();
+                
+                if (startHour < REASONABLE_HOURS_START || endHour >= REASONABLE_HOURS_END) {
+                    continue;
+                }
                 
                 // Check if this is actually a 2-hour window (accounting for gaps)
                 const hoursDiff = (endTime - startTime) / (1000 * 60 * 60);
@@ -838,9 +861,9 @@
                 }
             }
             
-            // Sort by average capacity and get top 5
+            // Sort by average capacity and get top 3
             windows.sort((a, b) => a.avgCapacity - b.avgCapacity);
-            const topWindows = windows.slice(0, 5);
+            const topWindows = windows.slice(0, 3);
             
             // Display best times
             const timeSlotsDiv = document.getElementById('time-slots');
@@ -860,9 +883,10 @@
             });
             
             // Also find best recurring time slots (same time across multiple days)
+            // Filter for reasonable hours only
             const recurringTimes = {};
             
-            currentData.forEach(d => {
+            reasonableData.forEach(d => {
                 const date = new Date(d.timestamp);
                 const hour = date.getHours();
                 const timeKey = `${hour}:00`;
@@ -886,7 +910,7 @@
             
             if (consistentTimes.length > 0) {
                 const consistentDiv = document.createElement('div');
-                consistentDiv.innerHTML = '<h3 style="margin-top: 30px;">📅 Consistently Good Times</h3>';
+                consistentDiv.innerHTML = '<h3 style="margin-top: 30px;">📅 Consistently Good Times (5am-10pm)</h3>';
                 
                 consistentTimes.forEach(time => {
                     const slot = document.createElement('div');
