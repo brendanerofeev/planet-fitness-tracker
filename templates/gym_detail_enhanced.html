@@ -74,6 +74,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
         
         .controls label {
@@ -287,20 +288,124 @@
                 padding: 10px;
             }
             
+            .header {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+            
             .header h1 {
-                font-size: 2em;
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+            
+            .nav-link {
+                padding: 8px 16px;
+                font-size: 14px;
             }
             
             .controls {
+                padding: 15px;
                 flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+            
+            .control-group label {
+                margin-bottom: 5px;
+            }
+            
+            .controls select,
+            .controls button,
+            .controls input {
+                width: 100%;
+                margin: 0;
+            }
+            
+            .chart-container {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .chart-container h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
             }
             
             .chart-wrapper {
-                height: 300px;
+                height: 250px;
+                margin-bottom: 15px;
             }
             
             .insights-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .insight-card {
+                padding: 15px;
+            }
+            
+            .insight-card .icon {
+                font-size: 2em;
+            }
+            
+            .insight-card .value {
+                font-size: 1.8em;
+            }
+            
+            .insight-card .label {
+                font-size: 0.8em;
+            }
+            
+            .tab-buttons {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .tab-button {
+                flex: 0 0 auto;
+                padding: 12px 15px;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            
+            .tab-content {
+                padding: 15px;
+            }
+            
+            .best-times {
+                padding: 15px;
+            }
+            
+            .best-times h3 {
+                font-size: 1.1em;
+                margin-bottom: 10px;
+            }
+            
+            .time-slot {
+                padding: 12px 15px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .time-slot .time {
+                font-size: 15px;
+            }
+            
+            .time-slot .capacity {
+                font-size: 14px;
             }
         }
     </style>
