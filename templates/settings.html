@@ -240,6 +240,87 @@
             border-radius: 3px;
             font-size: 11px;
         }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+            
+            .back-button {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+            
+            .settings-card {
+                padding: 20px;
+                margin-bottom: 15px;
+            }
+            
+            .settings-card h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+            
+            .form-group {
+                margin-bottom: 15px;
+            }
+            
+            .form-group input {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                padding: 12px;
+            }
+            
+            .sync-history-table {
+                font-size: 11px;
+            }
+            
+            .sync-history-table th,
+            .sync-history-table td {
+                padding: 8px 5px;
+                font-size: 11px;
+            }
+            
+            .sync-history-table th:nth-child(4),
+            .sync-history-table td:nth-child(4),
+            .sync-history-table th:nth-child(5),
+            .sync-history-table td:nth-child(5) {
+                display: none; /* Hide less important columns on mobile */
+            }
+            
+            .credentials-status {
+                padding: 12px;
+            }
+            
+            .help-text {
+                font-size: 11px;
+            }
+            
+            .alert {
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>

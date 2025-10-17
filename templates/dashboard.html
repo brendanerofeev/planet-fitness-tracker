@@ -75,14 +75,19 @@
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
         
         .controls input, .controls select {
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            margin-right: 10px;
             font-size: 14px;
+            flex: 1;
+            min-width: 150px;
         }
         
         .controls button {
@@ -93,6 +98,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
+            white-space: nowrap;
         }
         
         .controls button:hover {
@@ -184,12 +190,62 @@
                 padding: 10px;
             }
             
+            .header {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+            
             .header h1 {
-                font-size: 2em;
+                font-size: 1.8em;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+            
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-number {
+                font-size: 1.5em;
+            }
+            
+            .controls {
+                padding: 15px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls button,
+            .controls input,
+            .controls select {
+                width: 100%;
+                margin: 0;
             }
             
             .gym-grid {
                 grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .gym-card {
+                margin-bottom: 0;
+            }
+            
+            .capacity-number {
+                font-size: 2.5em;
+            }
+            
+            .timestamp {
+                font-size: 0.85em;
+                padding: 0 10px;
             }
         }
     </style>
