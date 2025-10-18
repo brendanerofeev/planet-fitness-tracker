@@ -638,9 +638,10 @@
                 const bestToday = todayData.reduce((min, curr) => 
                     curr.users_count < min.users_count ? curr : min
                 );
-                const time = new Date(bestToday.timestamp).toLocaleTimeString('en-AU', {
-                    hour: '2-digit',
-                    minute: '2-digit'
+                const time = new Date(bestToday.timestamp).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
                 });
                 document.getElementById('best-time').textContent = time;
             } else {
@@ -763,7 +764,11 @@
             charts.pattern = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: hours.map(h => `${h}:00`),
+                    labels: hours.map(h => {
+                        const period = h >= 12 ? 'PM' : 'AM';
+                        const hour12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+                        return `${hour12}${period}`;
+                    }),
                     datasets: [{
                         label: 'Average Capacity',
                         data: avgByHour,
@@ -885,7 +890,9 @@
                                     const hour = context.raw.x;
                                     const day = days[context.raw.y];
                                     const capacity = context.raw.capacity;
-                                    return `${day} ${hour}:00 - ${capacity} people`;
+                                    const period = hour >= 12 ? 'PM' : 'AM';
+                                    const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                                    return `${day} ${hour12}:00 ${period} - ${capacity} people`;
                                 }
                             }
                         }
@@ -900,7 +907,10 @@
                             },
                             ticks: {
                                 callback: function(value) {
-                                    return `${value}:00`;
+                                    const hour = Math.floor(value);
+                                    const period = hour >= 12 ? 'PM' : 'AM';
+                                    const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                                    return `${hour12}${period}`;
                                 }
                             }
                         },
@@ -928,12 +938,6 @@
             // Filter data to only include reasonable hours (5am-10pm)
             const REASONABLE_HOURS_START = 5;  // 5am
             const REASONABLE_HOURS_END = 22;    // 10pm
-            const MIN_WINDOW_MINUTES = 30;     // Minimum 30 minutes
-            const MAX_WINDOW_MINUTES = 150;    // Maximum 2.5 hours
-            const MIN_DATA_POINTS = 2;         // 30 minutes minimum at 15-min intervals
-            const MAX_DATA_POINTS = 8;         // 2 hours max (7 intervals + 1 final period)
-            const DATA_INTERVAL_MINUTES = 15;  // Data is collected every 15 minutes
-            const MILLISECONDS_PER_MINUTE = 60 * 1000;  // Conversion factor
             
             const reasonableData = currentData.filter(d => {
                 const hour = new Date(d.timestamp).getHours();
@@ -948,206 +952,128 @@
                 return;
             }
             
-            // Sort data by timestamp
-            const sortedData = [...reasonableData].sort((a, b) => 
-                new Date(a.timestamp) - new Date(b.timestamp)
-            );
+            // Step 1: Calculate the average of the TOP 10 busiest time slots
+            const allCapacities = reasonableData.map(d => d.users_count).sort((a, b) => b - a);
+            const top10Count = Math.min(10, allCapacities.length);
+            const top10Average = allCapacities.slice(0, top10Count).reduce((sum, val) => sum + val, 0) / top10Count;
+            const quietThreshold = top10Average * 0.33; // 33% of peak average
             
-            // Find time windows with lowest average capacity
-            const windows = [];
+            // Step 2: Group data by day of week and time, then calculate averages
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayTimeData = {}; // dayOfWeek -> hour -> [capacities]
             
-            for (let i = 0; i < sortedData.length - MIN_DATA_POINTS + 1; i++) {
-                // Try windows of different sizes (30 min to 2 hours)
-                for (let windowSize = MIN_DATA_POINTS; windowSize <= MAX_DATA_POINTS && i + windowSize <= sortedData.length; windowSize++) {
-                    const windowData = sortedData.slice(i, i + windowSize);
-                    const startTime = new Date(windowData[0].timestamp);
-                    const endTime = new Date(windowData[windowData.length - 1].timestamp);
-                    
-                    // Double-check that window is within reasonable hours
-                    const startHour = startTime.getHours();
-                    const endHour = endTime.getHours();
-                    
-                    if (startHour < REASONABLE_HOURS_START || endHour >= REASONABLE_HOURS_END) {
-                        continue;
-                    }
-                    
-                    // Check if window meets minimum duration and isn't too long
-                    // Duration includes the full time block: from start to end + one interval
-                    const minutesDiff = (endTime - startTime) / MILLISECONDS_PER_MINUTE + DATA_INTERVAL_MINUTES;
-                    if (minutesDiff >= MIN_WINDOW_MINUTES && minutesDiff <= MAX_WINDOW_MINUTES) {
-                        const avgCapacity = Math.round(
-                            windowData.reduce((sum, d) => sum + d.users_count, 0) / windowData.length
-                        );
+            reasonableData.forEach(d => {
+                const date = new Date(d.timestamp);
+                const dayOfWeek = date.getDay();
+                const hour = date.getHours();
+                
+                if (!dayTimeData[dayOfWeek]) {
+                    dayTimeData[dayOfWeek] = {};
+                }
+                if (!dayTimeData[dayOfWeek][hour]) {
+                    dayTimeData[dayOfWeek][hour] = [];
+                }
+                dayTimeData[dayOfWeek][hour].push(d.users_count);
+            });
+            
+            // Step 3: For each day, find all time slots that meet the "good time" threshold
+            const goodTimesByDay = {}; // dayOfWeek -> [{hour, avgCapacity, belowThreshold}]
+            
+            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+                if (!dayTimeData[dayOfWeek]) continue;
+                
+                goodTimesByDay[dayOfWeek] = [];
+                
+                for (let hour = REASONABLE_HOURS_START; hour < REASONABLE_HOURS_END; hour++) {
+                    if (dayTimeData[dayOfWeek][hour]) {
+                        const capacities = dayTimeData[dayOfWeek][hour];
+                        const avgCapacity = capacities.reduce((sum, val) => sum + val, 0) / capacities.length;
                         
-                        windows.push({
-                            start: startTime,
-                            end: endTime,
-                            avgCapacity: avgCapacity,
-                            duration: minutesDiff,
-                            day: startTime.toLocaleDateString('en-AU', { weekday: 'long' }),
-                            dayOfWeek: startTime.getDay(),
-                            dayDate: startTime.toLocaleDateString('en-AU', { 
-                                weekday: 'short', 
-                                month: 'short', 
-                                day: 'numeric' 
-                            }),
-                            startTimeStr: startTime.toLocaleTimeString('en-AU', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            }),
-                            endTimeStr: endTime.toLocaleTimeString('en-AU', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })
-                        });
+                        // Check if this time slot meets the "quiet" threshold
+                        if (avgCapacity <= quietThreshold) {
+                            goodTimesByDay[dayOfWeek].push({
+                                hour: hour,
+                                avgCapacity: avgCapacity,
+                                belowThreshold: quietThreshold - avgCapacity
+                            });
+                        }
                     }
                 }
+                
+                // Sort by how far below threshold (lower capacity is better)
+                goodTimesByDay[dayOfWeek].sort((a, b) => a.avgCapacity - b.avgCapacity);
             }
             
-            // Sort by average capacity
-            windows.sort((a, b) => a.avgCapacity - b.avgCapacity);
+            // Step 4: Select the best slot from each day, then pick top 3 days with lowest crowd levels
+            const bestSlotPerDay = [];
             
-            // Select top 3 non-overlapping windows on SEPARATE DAYS
-            const topWindows = [];
-            const usedDays = new Set();
-            
-            for (const window of windows) {
-                // Get the date string using local date to avoid timezone issues
-                const dayKey = `${window.start.getFullYear()}-${String(window.start.getMonth() + 1).padStart(2, '0')}-${String(window.start.getDate()).padStart(2, '0')}`;
-                
-                // Check if we already have a time slot for this specific day
-                if (usedDays.has(dayKey)) {
-                    continue;
+            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+                if (goodTimesByDay[dayOfWeek] && goodTimesByDay[dayOfWeek].length > 0) {
+                    const bestSlot = goodTimesByDay[dayOfWeek][0];
+                    bestSlotPerDay.push({
+                        dayOfWeek: dayOfWeek,
+                        dayName: daysOfWeek[dayOfWeek],
+                        hour: bestSlot.hour,
+                        avgCapacity: bestSlot.avgCapacity
+                    });
                 }
-                
-                // Add this window since it's on a unique day
-                topWindows.push(window);
-                usedDays.add(dayKey);
-                if (topWindows.length >= 3) break;
             }
             
-            // Display best times (top 3 on separate days)
+            // Sort by average capacity and take top 3
+            bestSlotPerDay.sort((a, b) => a.avgCapacity - b.avgCapacity);
+            const top3Days = bestSlotPerDay.slice(0, 3);
+            
+            // Helper function to format time in 12-hour format with AM/PM
+            function formatTime12Hour(hour) {
+                const period = hour >= 12 ? 'PM' : 'AM';
+                const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                return `${hour12}:00 ${period}`;
+            }
+            
+            // Display best times (top 3 different days)
             const timeSlotsDiv = document.getElementById('time-slots');
             timeSlotsDiv.innerHTML = '';
             
-            if (topWindows.length === 0) {
-                timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times</p>';
+            if (top3Days.length === 0) {
+                timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times (threshold: ' + Math.round(quietThreshold) + ' people)</p>';
             } else {
-                topWindows.forEach((window, index) => {
+                top3Days.forEach((daySlot, index) => {
                     const slot = document.createElement('div');
                     slot.className = 'time-slot';
-                    const durationText = Math.round(window.duration) + ' min';
                     slot.innerHTML = `
                         <div>
-                            <div class="time">${window.startTimeStr} - ${window.endTimeStr}</div>
-                            <div class="day">${window.dayDate} (${durationText})</div>
+                            <div class="time">${daySlot.dayName} ${formatTime12Hour(daySlot.hour)}</div>
+                            <div class="day">Averaged across all ${daySlot.dayName}s in dataset</div>
                         </div>
-                        <div class="capacity">Avg: ${window.avgCapacity} people</div>
+                        <div class="capacity">Avg: ${Math.round(daySlot.avgCapacity)} people</div>
                     `;
                     timeSlotsDiv.appendChild(slot);
                 });
             }
             
-            // Find best time for each day of the week
-            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const bestTimesByDay = {};
-            
-            // Group windows by day of week
-            windows.forEach(window => {
-                const dayOfWeek = window.dayOfWeek;
-                if (!bestTimesByDay[dayOfWeek]) {
-                    bestTimesByDay[dayOfWeek] = [];
-                }
-                bestTimesByDay[dayOfWeek].push(window);
-            });
-            
-            // For each day, find the best time (lowest capacity)
-            const dailyBestTimes = [];
-            for (let day = 0; day < 7; day++) {
-                if (bestTimesByDay[day] && bestTimesByDay[day].length > 0) {
-                    // Sort by average capacity (lowest first)
-                    bestTimesByDay[day].sort((a, b) => a.avgCapacity - b.avgCapacity);
-                    const bestWindow = bestTimesByDay[day][0];
-                    dailyBestTimes.push({
-                        dayName: daysOfWeek[day],
-                        dayOfWeek: day,
-                        window: bestWindow
-                    });
-                }
-            }
-            
-            // Display best time for each day
+            // Display best time for each day of the week
             const dailyTimeSlotsDiv = document.getElementById('daily-time-slots');
             dailyTimeSlotsDiv.innerHTML = '';
             
-            if (dailyBestTimes.length === 0) {
+            if (bestSlotPerDay.length === 0) {
                 dailyTimeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times for each day</p>';
             } else {
                 // Sort by day of week (Sunday = 0 to Saturday = 6)
-                dailyBestTimes.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+                bestSlotPerDay.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
                 
-                dailyBestTimes.forEach(dayInfo => {
-                    const window = dayInfo.window;
+                bestSlotPerDay.forEach(daySlot => {
                     const slot = document.createElement('div');
                     slot.className = 'time-slot';
                     slot.style.borderLeftColor = '#6b5b95';
-                    const durationText = Math.round(window.duration) + ' min';
                     slot.innerHTML = `
                         <div>
-                            <div class="time">${window.startTimeStr} - ${window.endTimeStr}</div>
-                            <div class="day">${dayInfo.dayName} (${durationText})</div>
+                            <div class="time">${daySlot.dayName} ${formatTime12Hour(daySlot.hour)}</div>
+                            <div class="day">Averaged across all ${daySlot.dayName}s in dataset</div>
                         </div>
-                        <div class="capacity" style="color: #6b5b95">Avg: ${window.avgCapacity} people</div>
+                        <div class="capacity" style="color: #6b5b95">Avg: ${Math.round(daySlot.avgCapacity)} people</div>
                     `;
                     dailyTimeSlotsDiv.appendChild(slot);
                 });
-            }
-            
-            // Also find best recurring time slots (same time across multiple days)
-            // Filter for reasonable hours only
-            const recurringTimes = {};
-            
-            reasonableData.forEach(d => {
-                const date = new Date(d.timestamp);
-                const hour = date.getHours();
-                const timeKey = `${hour}:00`;
-                
-                if (!recurringTimes[timeKey]) {
-                    recurringTimes[timeKey] = [];
-                }
-                recurringTimes[timeKey].push(d.users_count);
-            });
-            
-            // Find consistently good times
-            const consistentTimes = Object.entries(recurringTimes)
-                .map(([time, capacities]) => ({
-                    time: time,
-                    avgCapacity: Math.round(capacities.reduce((a, b) => a + b, 0) / capacities.length),
-                    consistency: capacities.length
-                }))
-                .filter(t => t.consistency >= 3) // At least 3 data points
-                .sort((a, b) => a.avgCapacity - b.avgCapacity)
-                .slice(0, 3);
-            
-            if (consistentTimes.length > 0) {
-                const consistentDiv = document.createElement('div');
-                consistentDiv.innerHTML = '<h3 style="margin-top: 30px;">📅 Consistently Good Times (5am-10pm)</h3>';
-                
-                consistentTimes.forEach(time => {
-                    const slot = document.createElement('div');
-                    slot.className = 'time-slot';
-                    slot.style.borderLeftColor = '#17a2b8';
-                    slot.innerHTML = `
-                        <div>
-                            <div class="time">${time.time}</div>
-                            <div class="day">Most days</div>
-                        </div>
-                        <div class="capacity" style="color: #17a2b8">Avg: ${time.avgCapacity} people</div>
-                    `;
-                    consistentDiv.appendChild(slot);
-                });
-                
-                document.getElementById('best-times').appendChild(consistentDiv);
             }
         }
     </script>
