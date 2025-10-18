@@ -521,7 +521,7 @@
             
             <!-- Best Times Section -->
             <div class="chart-container">
-                <h2>🎯 Best 2-Hour Workout Windows</h2>
+                <h2>🎯 Best Workout Times</h2>
                 <div class="best-times" id="best-times">
                     <h3>⭐ Top 3 Least Crowded Times (5am-10pm)</h3>
                     <div id="time-slots"></div>
@@ -904,6 +904,12 @@
             // Filter data to only include reasonable hours (5am-10pm)
             const REASONABLE_HOURS_START = 5;  // 5am
             const REASONABLE_HOURS_END = 22;    // 10pm
+            const MIN_WINDOW_MINUTES = 30;     // Minimum 30 minutes
+            const MAX_WINDOW_MINUTES = 150;    // Maximum 2.5 hours
+            const MIN_DATA_POINTS = 2;         // 30 minutes minimum at 15-min intervals
+            const MAX_DATA_POINTS = 8;         // 2 hours max (7 intervals + 1 final period)
+            const DATA_INTERVAL_MINUTES = 15;  // Data is collected every 15 minutes
+            const MILLISECONDS_PER_MINUTE = 60 * 1000;  // Conversion factor
             
             const reasonableData = currentData.filter(d => {
                 const hour = new Date(d.timestamp).getHours();
@@ -921,66 +927,91 @@
                 new Date(a.timestamp) - new Date(b.timestamp)
             );
             
-            // Find 2-hour windows with lowest average capacity
+            // Find time windows with lowest average capacity
             const windows = [];
             
-            for (let i = 0; i < sortedData.length - 8; i++) { // Need at least 8 data points (2 hours)
-                const windowData = sortedData.slice(i, i + 8);
-                const startTime = new Date(windowData[0].timestamp);
-                const endTime = new Date(windowData[windowData.length - 1].timestamp);
-                
-                // Double-check that window is within reasonable hours
-                const startHour = startTime.getHours();
-                const endHour = endTime.getHours();
-                
-                if (startHour < REASONABLE_HOURS_START || endHour >= REASONABLE_HOURS_END) {
-                    continue;
-                }
-                
-                // Check if this is actually a 2-hour window (accounting for gaps)
-                const hoursDiff = (endTime - startTime) / (1000 * 60 * 60);
-                if (hoursDiff <= 2.5) { // Allow some flexibility for missing data points
-                    const avgCapacity = Math.round(
-                        windowData.reduce((sum, d) => sum + d.users_count, 0) / windowData.length
-                    );
+            for (let i = 0; i < sortedData.length - MIN_DATA_POINTS + 1; i++) {
+                // Try windows of different sizes (30 min to 2 hours)
+                for (let windowSize = MIN_DATA_POINTS; windowSize <= MAX_DATA_POINTS && i + windowSize <= sortedData.length; windowSize++) {
+                    const windowData = sortedData.slice(i, i + windowSize);
+                    const startTime = new Date(windowData[0].timestamp);
+                    const endTime = new Date(windowData[windowData.length - 1].timestamp);
                     
-                    windows.push({
-                        start: startTime,
-                        end: endTime,
-                        avgCapacity: avgCapacity,
-                        day: startTime.toLocaleDateString('en-AU', { weekday: 'long' }),
-                        dayDate: startTime.toLocaleDateString('en-AU', { 
-                            weekday: 'short', 
-                            month: 'short', 
-                            day: 'numeric' 
-                        }),
-                        startTimeStr: startTime.toLocaleTimeString('en-AU', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }),
-                        endTimeStr: endTime.toLocaleTimeString('en-AU', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })
-                    });
+                    // Double-check that window is within reasonable hours
+                    const startHour = startTime.getHours();
+                    const endHour = endTime.getHours();
+                    
+                    if (startHour < REASONABLE_HOURS_START || endHour >= REASONABLE_HOURS_END) {
+                        continue;
+                    }
+                    
+                    // Check if window meets minimum duration and isn't too long
+                    // Duration includes the full time block: from start to end + one interval
+                    const minutesDiff = (endTime - startTime) / MILLISECONDS_PER_MINUTE + DATA_INTERVAL_MINUTES;
+                    if (minutesDiff >= MIN_WINDOW_MINUTES && minutesDiff <= MAX_WINDOW_MINUTES) {
+                        const avgCapacity = Math.round(
+                            windowData.reduce((sum, d) => sum + d.users_count, 0) / windowData.length
+                        );
+                        
+                        windows.push({
+                            start: startTime,
+                            end: endTime,
+                            avgCapacity: avgCapacity,
+                            duration: minutesDiff,
+                            day: startTime.toLocaleDateString('en-AU', { weekday: 'long' }),
+                            dayDate: startTime.toLocaleDateString('en-AU', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            }),
+                            startTimeStr: startTime.toLocaleTimeString('en-AU', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }),
+                            endTimeStr: endTime.toLocaleTimeString('en-AU', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })
+                        });
+                    }
                 }
             }
             
-            // Sort by average capacity and get top 3
+            // Sort by average capacity
             windows.sort((a, b) => a.avgCapacity - b.avgCapacity);
-            const topWindows = windows.slice(0, 3);
+            
+            // Select top 3 non-overlapping windows
+            const topWindows = [];
+            
+            for (const window of windows) {
+                // Check if this window overlaps with any already selected window
+                const overlaps = topWindows.some(selected => {
+                    return !(window.end <= selected.start || window.start >= selected.end);
+                });
+                
+                if (!overlaps) {
+                    topWindows.push(window);
+                    if (topWindows.length >= 3) break;
+                }
+            }
             
             // Display best times
             const timeSlotsDiv = document.getElementById('time-slots');
             timeSlotsDiv.innerHTML = '';
             
+            if (topWindows.length === 0) {
+                timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times</p>';
+                return;
+            }
+            
             topWindows.forEach((window, index) => {
                 const slot = document.createElement('div');
                 slot.className = 'time-slot';
+                const durationText = Math.round(window.duration) + ' min';
                 slot.innerHTML = `
                     <div>
                         <div class="time">${window.startTimeStr} - ${window.endTimeStr}</div>
-                        <div class="day">${window.dayDate}</div>
+                        <div class="day">${window.dayDate} (${durationText})</div>
                     </div>
                     <div class="capacity">Avg: ${window.avgCapacity} people</div>
                 `;
