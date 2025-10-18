@@ -907,8 +907,9 @@
             const MIN_WINDOW_MINUTES = 30;     // Minimum 30 minutes
             const MAX_WINDOW_MINUTES = 150;    // Maximum 2.5 hours
             const MIN_DATA_POINTS = 2;         // 30 minutes minimum at 15-min intervals
-            const MAX_DATA_POINTS = 8;         // ~2 hours at 15-min intervals
+            const MAX_DATA_POINTS = 8;         // 2 hours at 15-min intervals
             const DATA_INTERVAL_MINUTES = 15;  // Data is collected every 15 minutes
+            const MILLISECONDS_PER_MINUTE = 60 * 1000;  // Conversion factor
             
             const reasonableData = currentData.filter(d => {
                 const hour = new Date(d.timestamp).getHours();
@@ -946,7 +947,7 @@
                     
                     // Check if window meets minimum duration and isn't too long
                     // Duration includes the full time block: from start to end + one interval
-                    const minutesDiff = (endTime - startTime) / (1000 * 60) + DATA_INTERVAL_MINUTES;
+                    const minutesDiff = (endTime - startTime) / MILLISECONDS_PER_MINUTE + DATA_INTERVAL_MINUTES;
                     if (minutesDiff >= MIN_WINDOW_MINUTES && minutesDiff <= MAX_WINDOW_MINUTES) {
                         const avgCapacity = Math.round(
                             windowData.reduce((sum, d) => sum + d.users_count, 0) / windowData.length
