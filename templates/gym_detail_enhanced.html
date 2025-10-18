@@ -1012,24 +1012,18 @@
             const usedDays = new Set();
             
             for (const window of windows) {
-                // Get the date string (YYYY-MM-DD) to identify unique days
-                const dayKey = window.start.toISOString().split('T')[0];
+                // Get the date string using local date to avoid timezone issues
+                const dayKey = `${window.start.getFullYear()}-${String(window.start.getMonth() + 1).padStart(2, '0')}-${String(window.start.getDate()).padStart(2, '0')}`;
                 
                 // Check if we already have a time slot for this specific day
                 if (usedDays.has(dayKey)) {
                     continue;
                 }
                 
-                // Check if this window overlaps with any already selected window
-                const overlaps = topWindows.some(selected => {
-                    return !(window.end <= selected.start || window.start >= selected.end);
-                });
-                
-                if (!overlaps) {
-                    topWindows.push(window);
-                    usedDays.add(dayKey);
-                    if (topWindows.length >= 3) break;
-                }
+                // Add this window since it's on a unique day
+                topWindows.push(window);
+                usedDays.add(dayKey);
+                if (topWindows.length >= 3) break;
             }
             
             // Display best times (top 3 on separate days)
