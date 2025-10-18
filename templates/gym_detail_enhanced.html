@@ -539,6 +539,13 @@
         let currentData = [];
         let charts = {};
         
+        // Helper function to format time in 12-hour format with AM/PM
+        function formatTime12Hour(hour) {
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+            return `${hour12}:00 ${period}`;
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
@@ -764,11 +771,7 @@
             charts.pattern = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: hours.map(h => {
-                        const period = h >= 12 ? 'PM' : 'AM';
-                        const hour12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
-                        return `${hour12}${period}`;
-                    }),
+                    labels: hours.map(h => formatTime12Hour(h).replace(':00 ', '')),
                     datasets: [{
                         label: 'Average Capacity',
                         data: avgByHour,
@@ -890,9 +893,7 @@
                                     const hour = context.raw.x;
                                     const day = days[context.raw.y];
                                     const capacity = context.raw.capacity;
-                                    const period = hour >= 12 ? 'PM' : 'AM';
-                                    const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                                    return `${day} ${hour12}:00 ${period} - ${capacity} people`;
+                                    return `${day} ${formatTime12Hour(hour)} - ${capacity} people`;
                                 }
                             }
                         }
@@ -908,9 +909,7 @@
                             ticks: {
                                 callback: function(value) {
                                     const hour = Math.floor(value);
-                                    const period = hour >= 12 ? 'PM' : 'AM';
-                                    const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                                    return `${hour12}${period}`;
+                                    return formatTime12Hour(hour).replace(':00 ', '');
                                 }
                             }
                         },
@@ -935,9 +934,10 @@
         function findBestWorkoutTimes() {
             if (currentData.length === 0) return;
             
-            // Filter data to only include reasonable hours (5am-10pm)
+            // Constants
             const REASONABLE_HOURS_START = 5;  // 5am
             const REASONABLE_HOURS_END = 22;    // 10pm
+            const QUIET_THRESHOLD_RATIO = 0.33; // 33% of peak average
             
             const reasonableData = currentData.filter(d => {
                 const hour = new Date(d.timestamp).getHours();
@@ -956,7 +956,7 @@
             const allCapacities = reasonableData.map(d => d.users_count).sort((a, b) => b - a);
             const top10Count = Math.min(10, allCapacities.length);
             const top10Average = allCapacities.slice(0, top10Count).reduce((sum, val) => sum + val, 0) / top10Count;
-            const quietThreshold = top10Average * 0.33; // 33% of peak average
+            const quietThreshold = top10Average * QUIET_THRESHOLD_RATIO;
             
             // Step 2: Group data by day of week and time, then calculate averages
             const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1023,19 +1023,12 @@
             bestSlotPerDay.sort((a, b) => a.avgCapacity - b.avgCapacity);
             const top3Days = bestSlotPerDay.slice(0, 3);
             
-            // Helper function to format time in 12-hour format with AM/PM
-            function formatTime12Hour(hour) {
-                const period = hour >= 12 ? 'PM' : 'AM';
-                const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                return `${hour12}:00 ${period}`;
-            }
-            
             // Display best times (top 3 different days)
             const timeSlotsDiv = document.getElementById('time-slots');
             timeSlotsDiv.innerHTML = '';
             
             if (top3Days.length === 0) {
-                timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times (threshold: ' + Math.round(quietThreshold) + ' people)</p>';
+                timeSlotsDiv.innerHTML = `<p style="text-align: center; color: #666;">Not enough data to determine best times (threshold: ${Math.round(quietThreshold)} people)</p>`;
             } else {
                 top3Days.forEach((daySlot, index) => {
                     const slot = document.createElement('div');
