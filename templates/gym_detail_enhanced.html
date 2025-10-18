@@ -523,8 +523,12 @@
             <div class="chart-container">
                 <h2>🎯 Best Workout Times</h2>
                 <div class="best-times" id="best-times">
-                    <h3>⭐ Top 3 Least Crowded Times (5am-10pm)</h3>
+                    <h3>⭐ Top 3 Least Crowded Times (Separate Days)</h3>
                     <div id="time-slots"></div>
+                </div>
+                <div class="best-times" id="daily-best-times" style="margin-top: 30px;">
+                    <h3>📅 Best Time for Each Day of the Week</h3>
+                    <div id="daily-time-slots"></div>
                 </div>
             </div>
         </div>
@@ -645,12 +649,22 @@
         }
         
         function updateCharts() {
-            updateTrendChart();
-            updatePatternChart();
-            updateHeatmapChart();
+            try {
+                updateTrendChart();
+                updatePatternChart();
+                updateHeatmapChart();
+            } catch (error) {
+                console.error('Error updating charts:', error);
+                // Continue execution even if charts fail
+            }
         }
         
         function updateTrendChart() {
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded, skipping trend chart');
+                return;
+            }
+            
             const ctx = document.getElementById('trendChart').getContext('2d');
             
             // Destroy existing chart
@@ -716,6 +730,11 @@
         }
         
         function updatePatternChart() {
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded, skipping pattern chart');
+                return;
+            }
+            
             const ctx = document.getElementById('patternChart').getContext('2d');
             
             // Destroy existing chart
@@ -786,6 +805,11 @@
         }
         
         function updateHeatmapChart() {
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded, skipping heatmap chart');
+                return;
+            }
+            
             const ctx = document.getElementById('heatmapChart').getContext('2d');
             
             // Destroy existing chart
@@ -919,6 +943,8 @@
             if (reasonableData.length === 0) {
                 const timeSlotsDiv = document.getElementById('time-slots');
                 timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">No data available for reasonable hours (5am-10pm)</p>';
+                const dailyTimeSlotsDiv = document.getElementById('daily-time-slots');
+                dailyTimeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">No data available for reasonable hours (5am-10pm)</p>';
                 return;
             }
             
@@ -959,6 +985,7 @@
                             avgCapacity: avgCapacity,
                             duration: minutesDiff,
                             day: startTime.toLocaleDateString('en-AU', { weekday: 'long' }),
+                            dayOfWeek: startTime.getDay(),
                             dayDate: startTime.toLocaleDateString('en-AU', { 
                                 weekday: 'short', 
                                 month: 'short', 
@@ -980,43 +1007,101 @@
             // Sort by average capacity
             windows.sort((a, b) => a.avgCapacity - b.avgCapacity);
             
-            // Select top 3 non-overlapping windows
+            // Select top 3 non-overlapping windows on SEPARATE DAYS
             const topWindows = [];
+            const usedDays = new Set();
             
             for (const window of windows) {
-                // Check if this window overlaps with any already selected window
-                const overlaps = topWindows.some(selected => {
-                    return !(window.end <= selected.start || window.start >= selected.end);
-                });
+                // Get the date string using local date to avoid timezone issues
+                const dayKey = `${window.start.getFullYear()}-${String(window.start.getMonth() + 1).padStart(2, '0')}-${String(window.start.getDate()).padStart(2, '0')}`;
                 
-                if (!overlaps) {
-                    topWindows.push(window);
-                    if (topWindows.length >= 3) break;
+                // Check if we already have a time slot for this specific day
+                if (usedDays.has(dayKey)) {
+                    continue;
                 }
+                
+                // Add this window since it's on a unique day
+                topWindows.push(window);
+                usedDays.add(dayKey);
+                if (topWindows.length >= 3) break;
             }
             
-            // Display best times
+            // Display best times (top 3 on separate days)
             const timeSlotsDiv = document.getElementById('time-slots');
             timeSlotsDiv.innerHTML = '';
             
             if (topWindows.length === 0) {
                 timeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times</p>';
-                return;
+            } else {
+                topWindows.forEach((window, index) => {
+                    const slot = document.createElement('div');
+                    slot.className = 'time-slot';
+                    const durationText = Math.round(window.duration) + ' min';
+                    slot.innerHTML = `
+                        <div>
+                            <div class="time">${window.startTimeStr} - ${window.endTimeStr}</div>
+                            <div class="day">${window.dayDate} (${durationText})</div>
+                        </div>
+                        <div class="capacity">Avg: ${window.avgCapacity} people</div>
+                    `;
+                    timeSlotsDiv.appendChild(slot);
+                });
             }
             
-            topWindows.forEach((window, index) => {
-                const slot = document.createElement('div');
-                slot.className = 'time-slot';
-                const durationText = Math.round(window.duration) + ' min';
-                slot.innerHTML = `
-                    <div>
-                        <div class="time">${window.startTimeStr} - ${window.endTimeStr}</div>
-                        <div class="day">${window.dayDate} (${durationText})</div>
-                    </div>
-                    <div class="capacity">Avg: ${window.avgCapacity} people</div>
-                `;
-                timeSlotsDiv.appendChild(slot);
+            // Find best time for each day of the week
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const bestTimesByDay = {};
+            
+            // Group windows by day of week
+            windows.forEach(window => {
+                const dayOfWeek = window.dayOfWeek;
+                if (!bestTimesByDay[dayOfWeek]) {
+                    bestTimesByDay[dayOfWeek] = [];
+                }
+                bestTimesByDay[dayOfWeek].push(window);
             });
+            
+            // For each day, find the best time (lowest capacity)
+            const dailyBestTimes = [];
+            for (let day = 0; day < 7; day++) {
+                if (bestTimesByDay[day] && bestTimesByDay[day].length > 0) {
+                    // Sort by average capacity (lowest first)
+                    bestTimesByDay[day].sort((a, b) => a.avgCapacity - b.avgCapacity);
+                    const bestWindow = bestTimesByDay[day][0];
+                    dailyBestTimes.push({
+                        dayName: daysOfWeek[day],
+                        dayOfWeek: day,
+                        window: bestWindow
+                    });
+                }
+            }
+            
+            // Display best time for each day
+            const dailyTimeSlotsDiv = document.getElementById('daily-time-slots');
+            dailyTimeSlotsDiv.innerHTML = '';
+            
+            if (dailyBestTimes.length === 0) {
+                dailyTimeSlotsDiv.innerHTML = '<p style="text-align: center; color: #666;">Not enough data to determine best times for each day</p>';
+            } else {
+                // Sort by day of week (Sunday = 0 to Saturday = 6)
+                dailyBestTimes.sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+                
+                dailyBestTimes.forEach(dayInfo => {
+                    const window = dayInfo.window;
+                    const slot = document.createElement('div');
+                    slot.className = 'time-slot';
+                    slot.style.borderLeftColor = '#6b5b95';
+                    const durationText = Math.round(window.duration) + ' min';
+                    slot.innerHTML = `
+                        <div>
+                            <div class="time">${window.startTimeStr} - ${window.endTimeStr}</div>
+                            <div class="day">${dayInfo.dayName} (${durationText})</div>
+                        </div>
+                        <div class="capacity" style="color: #6b5b95">Avg: ${window.avgCapacity} people</div>
+                    `;
+                    dailyTimeSlotsDiv.appendChild(slot);
+                });
+            }
             
             // Also find best recurring time slots (same time across multiple days)
             // Filter for reasonable hours only
