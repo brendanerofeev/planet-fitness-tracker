@@ -905,6 +905,10 @@
             const REASONABLE_HOURS_START = 5;  // 5am
             const REASONABLE_HOURS_END = 22;    // 10pm
             const MIN_WINDOW_MINUTES = 30;     // Minimum 30 minutes
+            const MAX_WINDOW_MINUTES = 150;    // Maximum 2.5 hours
+            const MIN_DATA_POINTS = 2;         // 30 minutes minimum at 15-min intervals
+            const MAX_DATA_POINTS = 8;         // ~2 hours at 15-min intervals
+            const DATA_INTERVAL_MINUTES = 15;  // Data is collected every 15 minutes
             
             const reasonableData = currentData.filter(d => {
                 const hour = new Date(d.timestamp).getHours();
@@ -923,13 +927,11 @@
             );
             
             // Find time windows with lowest average capacity
-            // Minimum window is 30 minutes (2 data points at 15-minute intervals)
             const windows = [];
-            const MIN_DATA_POINTS = 2; // 30 minutes minimum at 15-min intervals
             
             for (let i = 0; i < sortedData.length - MIN_DATA_POINTS + 1; i++) {
                 // Try windows of different sizes (30 min to 2 hours)
-                for (let windowSize = MIN_DATA_POINTS; windowSize <= 8 && i + windowSize <= sortedData.length; windowSize++) {
+                for (let windowSize = MIN_DATA_POINTS; windowSize <= MAX_DATA_POINTS && i + windowSize <= sortedData.length; windowSize++) {
                     const windowData = sortedData.slice(i, i + windowSize);
                     const startTime = new Date(windowData[0].timestamp);
                     const endTime = new Date(windowData[windowData.length - 1].timestamp);
@@ -943,8 +945,9 @@
                     }
                     
                     // Check if window meets minimum duration and isn't too long
-                    const minutesDiff = (endTime - startTime) / (1000 * 60);
-                    if (minutesDiff >= MIN_WINDOW_MINUTES && minutesDiff <= 150) { // 30 min to 2.5 hours
+                    // Duration includes the full time block: from start to end + one interval
+                    const minutesDiff = (endTime - startTime) / (1000 * 60) + DATA_INTERVAL_MINUTES;
+                    if (minutesDiff >= MIN_WINDOW_MINUTES && minutesDiff <= MAX_WINDOW_MINUTES) {
                         const avgCapacity = Math.round(
                             windowData.reduce((sum, d) => sum + d.users_count, 0) / windowData.length
                         );
