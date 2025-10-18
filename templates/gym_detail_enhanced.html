@@ -546,6 +546,13 @@
             return `${hour12}:00 ${period}`;
         }
         
+        // Helper function to format time in short 12-hour format (e.g., "5AM", "2PM")
+        function formatTimeShort(hour) {
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+            return `${hour12}${period}`;
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
@@ -771,7 +778,7 @@
             charts.pattern = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: hours.map(h => formatTime12Hour(h).replace(':00 ', '')),
+                    labels: hours.map(h => formatTimeShort(h)),
                     datasets: [{
                         label: 'Average Capacity',
                         data: avgByHour,
@@ -909,7 +916,7 @@
                             ticks: {
                                 callback: function(value) {
                                     const hour = Math.floor(value);
-                                    return formatTime12Hour(hour).replace(':00 ', '');
+                                    return formatTimeShort(hour);
                                 }
                             }
                         },
