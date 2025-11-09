@@ -14,7 +14,7 @@ A Python-based system for tracking and visualizing gym occupancy data from Plane
 - 📈 Historical data tracking and analysis
 - 🐳 Docker containerization for easy deployment
 - 📱 Responsive design for mobile and desktop
-- 🗄️ SQLite database with JSON/CSV export options
+- 🗄️ SQLite or PostgreSQL database with JSON/CSV export options
 - 🔄 Automatic retry logic for API failures
 
 ## Quick Start with Docker
@@ -158,13 +158,38 @@ The web application provides several REST API endpoints:
 
 ## Data Storage
 
-- **SQLite Database**: Primary storage at `gym_capacity.db`
+- **SQLite Database**: Default storage at `gym_capacity.db` (development/single-user)
+- **PostgreSQL Database**: Optional production database (multi-user/scalable)
 - **JSON Export**: Available at `gym_capacity_data.json`
 - **CSV Export**: Available at `gym_capacity_data.csv`
 
 When using Docker, data persists in mounted volumes:
 - `./data` - Database and exports
 - `./logs` - Application logs
+
+### Database Migration
+
+The application supports both SQLite and PostgreSQL. To migrate from SQLite to PostgreSQL:
+
+1. **Configure PostgreSQL** in `.env`:
+   ```env
+   DB_TYPE=postgresql
+   POSTGRES_HOST=postgres
+   POSTGRES_DB=gym_capacity
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=your_secure_password
+   ```
+
+2. **Run migration script**:
+   ```bash
+   python migrate_sqlite_to_postgres.py
+   ```
+
+3. **Restart application** with PostgreSQL enabled
+
+For detailed migration instructions, see [MIGRATION.md](MIGRATION.md).
+
+**Note**: SQLite remains fully supported and is recommended for single-user deployments.
 
 ## Development
 
