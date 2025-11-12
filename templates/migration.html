@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Migration - Planet Fitness Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6b5b95 0%, #8b4d8b 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .nav-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #6b5b95;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .card h3 {
+            color: #6b5b95;
+            margin-bottom: 10px;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #6b5b95;
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .database-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .badge-sqlite {
+            background: #3498db;
+            color: white;
+        }
+
+        .badge-postgresql {
+            background: #336791;
+            color: white;
+        }
+
+        button {
+            background: #6b5b95;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #8b4d8b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .progress-container {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6b5b95, #8b4d8b);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .progress-status {
+            text-align: center;
+            font-size: 1.1em;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            color: #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #856404;
+            color: #856404;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-left: 4px solid #721c24;
+            color: #721c24;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #155724;
+            color: #155724;
+        }
+
+        .migration-steps {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .migration-steps li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .migration-steps li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .config-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .config-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .config-table td:first-child {
+            font-weight: bold;
+            width: 150px;
+            color: #666;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6b5b95;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Database Migration</h1>
+            <p>Migrate from SQLite to PostgreSQL</p>
+        </div>
+
+        <div class="nav-buttons">
+            <button onclick="window.location.href='/'">← Back to Dashboard</button>
+            <button onclick="window.location.href='/settings'" class="btn-info">⚙️ Settings</button>
+        </div>
+
+        <!-- Current Database Status -->
+        <div class="card">
+            <h2>📊 Current Database Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Database Type</div>
+                    <div class="status-value" id="current-db-type">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Total Gyms</div>
+                    <div class="status-value" id="total-gyms">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Total Records</div>
+                    <div class="status-value" id="total-records">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Database Size</div>
+                    <div class="status-value" id="db-size">-</div>
+                </div>
+            </div>
+
+            <div id="current-db-info" style="margin-top: 20px;">
+                <div class="status-label">Database Location</div>
+                <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 5px;" id="db-location">-</div>
+            </div>
+        </div>
+
+        <!-- PostgreSQL Configuration -->
+        <div class="card">
+            <h2>🐘 PostgreSQL Configuration</h2>
+            <div id="postgres-status">
+                <div class="loader"></div>
+            </div>
+        </div>
+
+        <!-- Migration Control -->
+        <div class="card">
+            <h2>🚀 Migration Control</h2>
+
+            <div id="migration-ready" class="hidden">
+                <div class="alert alert-info mb-20">
+                    <strong>Ready to migrate!</strong> This will copy all data from SQLite to PostgreSQL while keeping your SQLite database intact.
+                </div>
+
+                <h3>What will be migrated?</h3>
+                <ul class="migration-steps">
+                    <li>All gym locations</li>
+                    <li>All capacity logs (historical data)</li>
+                    <li>Stored credentials</li>
+                    <li>Sync history</li>
+                </ul>
+
+                <div style="margin-top: 30px;">
+                    <button id="start-migration-btn" onclick="startMigration()" class="btn-success" style="font-size: 1.1em; padding: 15px 30px;">
+                        🚀 Start Migration
+                    </button>
+                    <button onclick="testPostgresConnection()" class="btn-info" style="margin-left: 10px;">
+                        🔌 Test PostgreSQL Connection
+                    </button>
+                </div>
+            </div>
+
+            <div id="migration-not-ready" class="hidden">
+                <div class="alert alert-warning mb-20">
+                    <strong>PostgreSQL not configured.</strong> Please update your environment configuration before migrating.
+                </div>
+                <p>To enable PostgreSQL migration:</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Update your <code>.env</code> file with PostgreSQL settings</li>
+                    <li>Ensure PostgreSQL service is running</li>
+                    <li>Restart the application</li>
+                </ol>
+                <p style="margin-top: 15px;">See <a href="/static/MIGRATION.md" target="_blank">MIGRATION.md</a> for detailed instructions.</p>
+            </div>
+
+            <div id="already-postgres" class="hidden">
+                <div class="alert alert-success">
+                    <strong>Already using PostgreSQL!</strong> Your application is configured to use PostgreSQL database.
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div id="migration-progress" class="progress-container">
+                <h3 class="text-center">Migration in Progress...</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%">
+                        <span id="progress-percent">0%</span>
+                    </div>
+                </div>
+                <div class="progress-status" id="progress-status">Initializing...</div>
+            </div>
+
+            <div id="migration-complete" class="hidden">
+                <div class="alert alert-success">
+                    <strong>✓ Migration Completed Successfully!</strong><br>
+                    All data has been transferred to PostgreSQL.<br><br>
+                    <strong>Next Steps:</strong>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li>Update DB_TYPE=postgresql in your .env file</li>
+                        <li>Restart the application</li>
+                        <li>Verify data on dashboard</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div id="migration-error" class="hidden">
+                <div class="alert alert-danger">
+                    <strong>✗ Migration Failed</strong><br>
+                    <span id="error-message"></span>
+                </div>
+                <button onclick="location.reload()" class="btn-info" style="margin-top: 10px;">Try Again</button>
+            </div>
+        </div>
+
+        <!-- Documentation -->
+        <div class="card">
+            <h2>📚 Documentation</h2>
+            <p>For detailed migration instructions, troubleshooting, and rollback procedures, see the <a href="https://github.com/brendanerofeev/planet-fitness-tracker/blob/main/MIGRATION.md" target="_blank">Migration Guide</a>.</p>
+
+            <h3>Key Points:</h3>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><strong>Non-destructive:</strong> SQLite database remains unchanged</li>
+                <li><strong>Reversible:</strong> You can switch back to SQLite anytime</li>
+                <li><strong>Safe:</strong> Migration runs in isolation from the main app</li>
+                <li><strong>Optional:</strong> SQLite works great for most use cases</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let statusUpdateInterval = null;
+
+        // Load status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatus();
+        });
+
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/migration/status');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    updateStatusDisplay(data);
+                } else {
+                    console.error('Failed to load status:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+
+        function updateStatusDisplay(data) {
+            // Current database type
+            const dbType = data.current_database.type;
+            const dbTypeBadge = dbType === 'sqlite'
+                ? '<span class="database-badge badge-sqlite">SQLite</span>'
+                : '<span class="database-badge badge-postgresql">PostgreSQL</span>';
+            document.getElementById('current-db-type').innerHTML = dbTypeBadge;
+
+            // Statistics
+            document.getElementById('total-gyms').textContent = data.statistics.total_gyms;
+            document.getElementById('total-records').textContent = data.statistics.total_capacity_logs.toLocaleString();
+
+            // Database size
+            if (data.current_database.size_bytes) {
+                const sizeMB = (data.current_database.size_bytes / 1024 / 1024).toFixed(2);
+                document.getElementById('db-size').textContent = `${sizeMB} MB`;
+            } else {
+                document.getElementById('db-size').textContent = 'N/A';
+            }
+
+            // Database location
+            document.getElementById('db-location').textContent = data.current_database.url;
+
+            // PostgreSQL configuration
+            const postgresStatusDiv = document.getElementById('postgres-status');
+            if (data.postgres_configured) {
+                const config = data.postgres_config;
+                postgresStatusDiv.innerHTML = `
+                    <div class="alert alert-success mb-20">
+                        ✓ PostgreSQL is configured and ready
+                    </div>
+                    <table class="config-table">
+                        <tr><td>Host:</td><td>${config.host}</td></tr>
+                        <tr><td>Port:</td><td>${config.port}</td></tr>
+                        <tr><td>Database:</td><td>${config.database}</td></tr>
+                        <tr><td>User:</td><td>${config.user}</td></tr>
+                    </table>
+                `;
+            } else {
+                postgresStatusDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        PostgreSQL is not configured. Please update your .env file.
+                    </div>
+                `;
+            }
+
+            // Show appropriate migration section
+            if (dbType === 'postgresql') {
+                document.getElementById('already-postgres').classList.remove('hidden');
+            } else if (data.postgres_configured) {
+                document.getElementById('migration-ready').classList.remove('hidden');
+            } else {
+                document.getElementById('migration-not-ready').classList.remove('hidden');
+            }
+
+            // Check migration state
+            const migrationState = data.migration_state;
+            if (migrationState.in_progress) {
+                showMigrationProgress();
+                startStatusPolling();
+            } else if (migrationState.completed) {
+                document.getElementById('migration-complete').classList.remove('hidden');
+                document.getElementById('migration-ready').classList.add('hidden');
+            } else if (migrationState.error) {
+                showMigrationError(migrationState.error);
+            }
+        }
+
+        async function testPostgresConnection() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '🔌 Testing...';
+
+            try {
+                const response = await fetch('/api/migration/test-connection', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    alert('✓ PostgreSQL connection successful!\n\n' + data.version);
+                } else {
+                    alert('✗ Connection failed:\n\n' + data.error);
+                }
+            } catch (error) {
+                alert('✗ Connection test failed:\n\n' + error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔌 Test PostgreSQL Connection';
+            }
+        }
+
+        async function startMigration() {
+            if (!confirm('Start migration to PostgreSQL?\n\nThis will copy all data from SQLite to PostgreSQL. The process may take several minutes for large datasets.')) {
+                return;
+            }
+
+            const btn = document.getElementById('start-migration-btn');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/migration/start', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showMigrationProgress();
+                    startStatusPolling();
+                } else {
+                    alert('Failed to start migration:\n\n' + data.error);
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                alert('Failed to start migration:\n\n' + error);
+                btn.disabled = false;
+            }
+        }
+
+        function showMigrationProgress() {
+            document.getElementById('migration-ready').classList.add('hidden');
+            document.getElementById('migration-progress').style.display = 'block';
+        }
+
+        function showMigrationError(error) {
+            document.getElementById('migration-progress').style.display = 'none';
+            document.getElementById('migration-error').classList.remove('hidden');
+            document.getElementById('error-message').textContent = error;
+        }
+
+        function startStatusPolling() {
+            if (statusUpdateInterval) {
+                clearInterval(statusUpdateInterval);
+            }
+
+            statusUpdateInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/migration/progress');
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        const state = data.migration_state;
+
+                        if (state.in_progress) {
+                            const progress = state.progress;
+                            const percent = Math.round((progress.current_step_num / progress.total_steps) * 100);
+
+                            document.getElementById('progress-fill').style.width = percent + '%';
+                            document.getElementById('progress-percent').textContent = percent + '%';
+                            document.getElementById('progress-status').textContent = progress.current_step;
+                        } else if (state.completed) {
+                            clearInterval(statusUpdateInterval);
+                            document.getElementById('migration-progress').style.display = 'none';
+                            document.getElementById('migration-complete').classList.remove('hidden');
+                        } else if (state.error) {
+                            clearInterval(statusUpdateInterval);
+                            showMigrationError(state.error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error polling migration status:', error);
+                }
+            }, 1000); // Poll every second
+        }
+    </script>
+</body>
+</html>

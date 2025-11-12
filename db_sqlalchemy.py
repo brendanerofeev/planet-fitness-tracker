@@ -36,15 +36,6 @@ class GymDatabase:
         self.engine = create_engine(db_url, **engine_args)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
-        # Store database URL for compatibility
-        self.db_url = db_url
-
-        # Backward compatibility: db_path property for SQLite
-        if DatabaseConfig.DB_TYPE == 'sqlite':
-            self.db_path = DatabaseConfig.get_sqlite_path()
-        else:
-            self.db_path = f"PostgreSQL: {DatabaseConfig.POSTGRES_HOST}:{DatabaseConfig.POSTGRES_PORT}/{DatabaseConfig.POSTGRES_DB}"
-
         # Create tables if they don't exist
         self.init_database()
 
